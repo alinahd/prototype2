@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>disintegration</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:#0A0A0B;color:#EDE7DA;
+    font-family:"Public Sans",ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    display:flex;flex-direction:column;overflow:hidden;-webkit-font-smoothing:antialiased}
+
+  /*
+    No framing copy lives on the two piece pages themselves — Alinah asked
+    for the concept/reasoning to stay off the work itself. It lives in the
+    About overlay instead, written to match whichever piece is open.
+
+    TAB DESIGN (this pass, third attempt): filled pill, then an underline
+    indicator — both rejected. This one has no decoration at all: just
+    bold, uppercase labels with a plain weight/brightness jump from
+    inactive to active. Nothing slides, nothing sits on a track.
+
+    ABOUT (this pass): no longer a third tab that swaps the whole page out.
+    It's a separate, isolated control — set apart from the two tabs, same
+    bold-caps treatment the reference used — that opens a dark panel
+    sliding in from the left, Face-Value style: the piece underneath stays
+    loaded, visible and running on the right the entire time.
+  */
+
+  body{background:#0A0A0B}
+
+  nav{position:relative;display:flex;align-items:center;flex:none;padding:0 32px;
+    height:92px;border-bottom:1px solid #1C1C1F;z-index:2}
+  nav .tabs{display:flex;gap:40px;height:100%}
+  nav button{position:relative;background:transparent;border:0;cursor:pointer;
+    font:800 18px/1 "Public Sans",ui-sans-serif,sans-serif;letter-spacing:.05em;text-transform:uppercase;
+    color:rgba(237,231,218,.34);height:100%;padding:0;
+    transition:color .2s ease}
+  nav button:hover{color:rgba(237,231,218,.72)}
+  nav button.on{color:#A347FF}
+  nav button:focus-visible{outline:1.5px solid #A347FF;outline-offset:3px}
+
+  #btnAbout{font:800 15px/1 "Public Sans",ui-sans-serif,sans-serif;
+    letter-spacing:.14em;text-transform:uppercase;background:transparent;border:0;cursor:pointer;
+    color:rgba(237,231,218,.5);padding:8px 2px;transition:color .2s ease}
+  #btnAbout:hover{color:#EDE7DA}
+  #btnAbout.on{color:#A347FF}
+  /* About carries the margin-left:auto that the old build label used to */
+  #btnAbout{margin-left:auto}
+  #btnAbout:focus-visible{outline:1.5px solid #A347FF;outline-offset:2px}
+
+  #frames{flex:1;position:relative;min-height:0}
+  iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#0A0A0B;
+    opacity:0;pointer-events:none;transition:opacity .32s ease}
+  iframe.on{opacity:1;pointer-events:auto}
+  #missing{position:absolute;inset:0;display:none;align-items:center;justify-content:center;
+    padding:0 40px;text-align:center;z-index:3;color:#ACACB4;
+    font:400 14px/1.6 "Public Sans",ui-sans-serif,sans-serif}
+  #missing.on{display:flex}
+
+  /* tiny ambient loading pulse so a switch never reads as "did that work?" */
+  #frames.loading::after{content:'';position:absolute;top:18px;right:18px;width:7px;height:7px;
+    border-radius:50%;background:#A347FF;opacity:.85;animation:pulse 1s ease-in-out infinite;z-index:3}
+  @keyframes pulse{0%,100%{transform:scale(1);opacity:.85}50%{transform:scale(1.7);opacity:.25}}
+
+  /* ---------------------------------------------- About overlay panel ---
+     Styled after the "Face Value" reference: a dark panel sliding in over
+     the left side of whatever is currently playing, which keeps running,
+     full-bleed, visible on the right the whole time it's open. */
+  #scrim{position:absolute;inset:0;background:rgba(0,0,0,.0);opacity:0;pointer-events:none;
+    transition:opacity .4s ease, background-color .4s ease;z-index:9}
+  #scrim.on{opacity:1;pointer-events:auto;background:rgba(0,0,0,.28)}
+
+  #aboutPanel{position:absolute;top:0;bottom:0;left:0;width:min(420px,88vw);
+    background:rgba(9,9,10,.94);backdrop-filter:blur(14px);
+    border-right:1px solid rgba(237,231,218,.1);
+    box-shadow:40px 0 90px rgba(0,0,0,.55);
+    transform:translateX(-100%);transition:transform .42s cubic-bezier(.65,0,.35,1);
+    z-index:10;overflow-y:auto;padding:30px 34px 40px}
+  #aboutPanel.on{transform:translateX(0)}
+
+  #aboutClose{position:absolute;top:22px;right:22px;width:34px;height:34px;border-radius:50%;
+    border:1px solid rgba(237,231,218,.3);background:transparent;color:#EDE7DA;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;transition:border-color .2s,background-color .2s}
+  #aboutClose:hover{border-color:#A347FF;background:rgba(163,71,255,.08)}
+  #aboutClose svg{width:12px;height:12px}
+
+  #aboutPanel .eyebrow{font:800 10px/1 "Public Sans",ui-sans-serif,sans-serif;letter-spacing:.18em;
+    text-transform:uppercase;color:#A347FF;margin:46px 0 16px}
+  #aboutPanel h2{font:800 34px/1.08 "Public Sans",ui-sans-serif,sans-serif;letter-spacing:-.01em;
+    text-transform:uppercase;margin:0 0 22px;color:#EDE7DA}
+  #aboutPanel p{font-size:15.5px;line-height:1.75;color:rgba(237,231,218,.82);margin:0 0 16px}
+  #aboutPanel p:last-child{margin-bottom:0}
+
+  @media (max-width:640px){
+    #aboutPanel{width:100vw;border-right:0}
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="tabs">
+    <button class="tabbtn on" data-tab="b">Exploration 1</button>
+    <button class="tabbtn" data-tab="a">Exploration 2</button>
+  </div>
+  <button id="btnAbout">About</button>
+</nav>
+
+<div id="frames">
+  <iframe id="frameA" title="Exploration 2" allow="microphone; downloads"></iframe>
+  <iframe id="frameB" title="Exploration 1" allow="downloads"></iframe>
+
+  <div id="missing"></div>
+  <div id="scrim"></div>
+  <div id="aboutPanel">
+    <button id="aboutClose" aria-label="Close">
+      <svg viewBox="0 0 12 12"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.4" fill="none"/></svg>
+    </button>
+    <div id="aboutText"></div>
+  </div>
+</div>
+
+<script>
+/* Each piece is its own file, loaded fresh in an iframe — keeps their
+   scripts, audio contexts and animation loops from colliding. On leave,
+   the iframe fades out, THEN its src is cleared (after the fade finishes)
+   so the audio cut lands after the visual cut, not before it — and the
+   next tab only fades in once it has actually loaded. */
+const SRC = { a: 'prototype2-exploration-2.html', b: 'prototype2-exploration-1.html' };
+
+/* Stamped once per page load, then appended to the iframe URLs.
+
+   Without it the browser caches each exploration against its plain
+   filename and keeps serving the old copy after the file on disk has
+   changed — so the shell updates, the tab inside it doesn't, and you
+   are looking at two different versions of the same build without any
+   sign that is what is happening.
+
+   Stamped ONCE, not per tab switch, so switching back and forth inside
+   a session still comes out of cache. Reloading the page is what gets
+   you fresh files, which is what you would expect it to do. */
+const BUILD = Date.now();
+const srcOf = tab => SRC[tab] + '?v=' + BUILD;
+
+/* About copy — tracks whichever of the two piece tabs was open last, so
+   opening About always explains the thing you were just looking at. The
+   panel sits on top; the iframe keeps playing behind/beside it. */
+const ABOUT = {
+  a: {
+    h: 'Exploration 2',
+    p: [
+      'A recorded Urdu sentence drives the shape of the type. Four things in the sound are measured continuously: overall level, low frequencies, high frequencies, and sudden jumps in level. Each one controls a different property of the marks, so the voice decides how big they are, how thick, how much they shiver, and how far they are thrown off their line. The word is never drawn as a fixed shape. It only has the shape the voice gives it at that moment.',
+      'The recording also exists as five progressively degraded copies, and the bar along the bottom moves through them. As the voice loses detail the type loses its structure with it, so what is lost in a copy becomes something you can see as well as hear. By the last copy there is still sound, but there are no words left in it and nothing left to read.'
+    ]
+  },
+  b: {
+    h: 'Exploration 1',
+    p: [
+      'A recorded Urdu sentence is typed out line by line, in time with the voice, as if it were being spoken and written down at once. When a new line begins, the line before it breaks apart: the words separate, fall, and collect at the bottom of the screen instead of disappearing. Only one line is ever fully standing.',
+      'Nothing is deleted. Each fallen word still knows which word it is and where it sits in the recording, so pushing one with the cursor plays that word back, though words that fell longer ago come back quieter and more muffled than ones that fell recently. Everything is still on the page and can still be heard. It just cannot be read as a sentence anymore. A sentence does not vanish all at once. It stops being readable while all of its parts are still there.'
+    ]
+  }
+};
+
+const frames  = { a: document.getElementById('frameA'), b: document.getElementById('frameB') };
+const buttons = { a: document.querySelector('[data-tab="a"]'), b: document.querySelector('[data-tab="b"]') };
+const stage = document.getElementById('frames');
+const missing = document.getElementById('missing');
+const aboutText = document.getElementById('aboutText');
+const aboutPanel = document.getElementById('aboutPanel');
+const scrim = document.getElementById('scrim');
+const btnAbout = document.getElementById('btnAbout');
+
+let current = 'b', switching = false, aboutOpen = false;
+const FADE_MS = 320;
+
+function renderAbout(){
+  const a = ABOUT[current];
+  aboutText.innerHTML = '<div class="eyebrow">About this piece</div><h2>' + a.h + '</h2>' + a.p.map(t=>'<p>'+t+'</p>').join('');
+}
+
+function openAbout(){
+  aboutOpen = true;
+  renderAbout();
+  aboutPanel.classList.add('on');
+  scrim.classList.add('on');
+  btnAbout.classList.add('on');
+}
+function closeAbout(){
+  aboutOpen = false;
+  aboutPanel.classList.remove('on');
+  scrim.classList.remove('on');
+  btnAbout.classList.remove('on');
+}
+
+btnAbout.addEventListener('click', () => aboutOpen ? closeAbout() : openAbout());
+document.getElementById('aboutClose').addEventListener('click', closeAbout);
+scrim.addEventListener('click', closeAbout);
+addEventListener('keydown', e => { if (e.key === 'Escape' && aboutOpen) closeAbout(); });
+
+function go(tab){
+  if (tab === current || switching) return;
+  switching = true;
+
+  buttons[current].classList.remove('on');
+  buttons[tab].classList.add('on');
+
+  const leaving = frames[current], entering = frames[tab];
+  leaving.classList.remove('on');
+  stage.classList.add('loading');
+  missing.classList.remove('on');
+  current = tab;
+  if (aboutOpen) renderAbout();   // keep the open panel in sync if they switch pieces while reading it
+
+  setTimeout(() => {
+    /* Three things here, and all three were one bug.
+
+       leaving.onload is cleared first. The frame that starts the session
+       was given a permanent onload that adds 'on' — so navigating it here
+       re-fired that handler and put the class straight back on the frame
+       we had just hidden.
+
+       about:blank, not ''. An empty src resolves against the page's own
+       URL, so this didn't blank the frame at all — it loaded a second
+       copy of this whole shell inside it.
+
+       Together: both frames ended up marked visible, and since frameB
+       comes after frameA in the document it paints on top. Whichever
+       piece was LEAVING stayed covering the one arriving. It only looked
+       fine before because the tab that happened to be entering was also
+       the one higher in the stack — swapping the tab order is what
+       uncovered it, not what caused it. */
+    leaving.onload = null;
+    leaving.src = 'about:blank';   // torn down only after it's faded out, so the audio cut lands after the visual one
+
+    let revealed = false;
+    const reveal = () => {
+      if (revealed) return;
+      revealed = true;
+      entering.classList.add('on');
+      stage.classList.remove('loading');
+      switching = false;
+    };
+    entering.onload = () => { entering.onload = null; reveal(); };
+    entering.src = srcOf(tab);
+    setTimeout(reveal, 900);
+    // A missing file used to show as a silently blank panel, which is
+    // indistinguishable from a broken piece. Name it instead.
+    if (location.protocol.startsWith('http')){
+      fetch(srcOf(tab), {method:'HEAD'})
+        .then(r => { if (!r.ok) throw 0; })
+        .catch(() => {
+          stage.classList.remove('loading');
+          missing.textContent = SRC[tab] + ' isn\u2019t in this folder \u2014 all four files need to sit together.';
+          missing.classList.add('on');
+        });
+    }
+  }, FADE_MS);
+}
+
+frames.b.onload = () => { frames.b.onload = null; frames.b.classList.add('on'); };
+frames.b.src = srcOf('b');
+
+Object.values(buttons).forEach(btn => btn.addEventListener('click', () => go(btn.dataset.tab)));
+</script>
+</body>
+</html>
